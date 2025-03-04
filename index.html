@@ -1,0 +1,553 @@
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs=" crossorigin="anonymous">
+  </script>
+  <script src="https://kit.fontawesome.com/c6ea4c2af9.js" crossorigin="anonymous"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+</head>
+<body>
+<div id="start" style="text-align: center">
+  <h1 style="margin-top: 250px;">Mini Metro Shape Tool</h1><br>
+  <div style="display: inline-block">
+  <button type="button" onclick="newMap()" class="btn btn-success">
+    <i class="fas fa-plus"></i>&nbsp;New Map
+  </button>
+  <input type="file" accept=".json" onchange="processMap()" id="uploadMap" style="display:none"/>
+  <button type="button" onclick="uploadMap()" class="btn btn-secondary">
+    <i class="fas fa-folder-open"></i>&nbsp;Open Shapes File (JSON)
+  </button>
+</div>
+</div>
+<div style="padding: 5%; height: 100%; display: none" id="mainWrapper">
+  <div style="height: 75%" id="canvasContainer">
+    <canvas id="backgroundCanvas" style="border: 1px solid black; position: absolute; left: 0; top: 0; height: 75%; margin: 5%"></canvas>
+    <canvas id="mainCanvas" style="border: 1px solid black; position: absolute; left: 0; top: 0; height: 75%; margin: 5%"></canvas>
+  </div>
+
+  <br>
+  <label id="coordinate">&nbsp;</label><br><br>
+  <button type="button" id="selectTool" onclick="chooseTool('selectTool')" class="btn btn-dark">
+    <i class="fas fa-mouse-pointer"></i>
+  </button>
+  <button type="button" id="markerTool" onclick="chooseTool('markerTool')" class="btn btn-outline-dark">
+    <i class="fas fa-map-marker"></i>
+  </button>
+  <button type="button" id="polygonTool" onclick="chooseTool('polygonTool')" class="btn btn-outline-dark">
+    <i class="fas fa-draw-polygon"></i>
+  </button>
+  <div style="float:right">
+    <button type="button" id="export" onclick="exportData()" class="btn btn-success">
+      <i class="fas fa-download"></i>
+    </button>
+    <button type="button" id="export" onclick="showHelp()" class="btn btn-primary">
+      <i class="fas fa-question"></i>
+    </button>
+  </div>
+</div>
+<div id="clipboardWrapper" style="height: 100%; display: none; vertical-align: top; padding-top: 5%; width: 300px">
+  <h1>Clipboard</h1>
+  <p style="font-family: monospace" id="clipboard"></p>
+</div>
+
+<div id="createModal" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Choose settings</h5>
+        <button onclick="closeModal()" type="button" class="btn btn-text" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label for="city_width" class="form-label">City size</label>
+        <div class="input-group mb-3">
+          <input id="city_width" type="text" value="5000" class="form-control">
+          <span class="input-group-text">x</span>
+          <input id="city_height" type="text" value="5000" class="form-control">
+        </div>
+        <label for="origin_x" class="form-label">Position of (0/0) (default is middle)</label>
+        <div class="input-group mb-3">
+          <input id="origin_x" type="text" value="2500" class="form-control">
+          <span class="input-group-text">/</span>
+          <input id="origin_y" type="text" value="2500" class="form-control">
+        </div>
+        <label for="background_image" class="form-label">Background image</label>
+        <div class="input-group mb-3">
+          <input type="file" accept=".jpg,.png" class="form-control" id="background_image">
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="desaturate">
+          <label class="form-check-label" for="desaturate">
+            Desaturate image
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="createCityMap()" class="btn btn-primary">Create city map</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="helpModal" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Help</h5>
+        <button onclick="closeHelp()" type="button" class="btn btn-text" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Use the <i class="fas fa-map-marker"></i> and <i class="fas fa-draw-polygon"></i> tool to create shapes.</p>
+        <p><i class="fas fa-mouse-pointer"></i> a shape to select it and to copy its coordinates.</p>
+        <p>Press <i class="fas fa-backspace"></i> to delete the entire selected shape.</p>
+        <p>Shift + <i class="fas fa-mouse-pointer"></i> a point to delete it.</p>
+        <p>Drag a point to move it around.</p>
+        <p>Press Esc to deselect.</p>
+        <p>Press <i class="fas fa-download"></i> to save the shapes you designed as a JSON file.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+  let activeTool = "selectTool";
+  const canvas = $("#mainCanvas")[0];
+  const context = canvas.getContext('2d');
+  context.globalAlpha = 0.4;
+  let elements = [];
+  const markerSize = 6;
+  const relativeFontSize = 1.5;
+  let imageObject;
+  let screenScale = 1;
+  let origin;
+  let pressingShift = false;
+  let moved = false;
+  let picked;
+  let changed = false;
+  let desaturate = false;
+
+  window.onbeforeunload = function (e) {
+
+    if(changed) {
+      const text = 'Are you sure you want to leave? Download your shapes as JSON to save your progress.';
+      (e || window.event).returnValue = text;
+      return text;
+    } else {
+      return null;
+    }
+  };
+
+  function newMap() {
+    $("#start").hide();
+    $("#createModal").show();
+  }
+  function uploadMap() {
+    $("#uploadMap").trigger("click");
+  }
+  function closeModal() {
+    $("#start").show();
+    $("#createModal").hide();
+  }
+  function showHelp() {
+    $("#helpModal").show();
+  }
+  function closeHelp() {
+    $("#helpModal").hide();
+  }
+  function processMap() {
+    const file = $('#uploadMap').prop('files')[0];
+    if(file) {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.addEventListener("load", (e) => {
+
+        var result = JSON.parse(e.target.result);
+        elements = result.elements;
+        canvas.width = result.width;
+        canvas.height = result.height;
+        desaturate = result.desaturate;
+        if(result.image) {
+          drawDataURLToCanvas(result.image);
+        } else {
+          $("#backgroundCanvas").hide();
+        }
+        initHTMLAndEvents();
+        origin = result.origin;
+        drawEverything();
+      });
+    }
+  }
+  function createCityMap() {
+    desaturate =  $('#desaturate').prop('checked');
+    const file = $('#background_image').prop('files')[0];
+
+    canvas.width = parseInt($("#city_width").val());
+    canvas.height = parseInt($("#city_height").val());
+    initHTMLAndEvents();
+    origin = {
+      x: parseInt($("#origin_x").val()),
+      y: parseInt($("#origin_y").val())
+    };
+    if(file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.addEventListener("load", () => {
+        drawDataURLToCanvas(reader.result);
+      })
+    } else {
+      $("#backgroundCanvas").hide();
+    }
+    changed = true;
+  }
+  function drawDataURLToCanvas(dataURL) {
+    imageObject = new Image;
+    imageObject.onload = function(){
+      drawBackground();
+    };
+    imageObject.src = dataURL;
+  }
+  function initHTMLAndEvents() {
+    $("#start").hide();
+    $("#createModal").hide();
+    $("#mainWrapper").css("display", "inline-block");
+    $("#clipboardWrapper").css("display", "inline-block");
+    $("#canvasContainer").width($(canvas).width());
+    $("#canvasContainer").height($(canvas).height());
+    $(document).mousemove(handleMouseMove);
+    $(canvas).mousedown(handleMouseDown);
+    $(document).mouseup(handleMouseUp);
+    $(document).keydown(handleKeyDown);
+    $(document).keyup(handleKeyUp);
+    screenScale = canvas.height / canvas.getBoundingClientRect().height;
+  }
+  function chooseTool(toolName) {
+    if(activeTool !== toolName) {
+      $("#" + activeTool).removeClass("btn-dark").addClass("btn-outline-dark");
+      $("#" + toolName).removeClass("btn-outline-dark").addClass("btn-dark");
+      activeTool = toolName;
+      unselect();
+    }
+  }
+  function displayCoordinates(e) {
+    if(inCity(e)) {
+      const city = eventToCity(e);
+      $("#coordinate").text(city.x + ", " + city.y);
+    } else {
+      $("#coordinate").html("&nbsp;");
+    }
+  }
+  function inCity(event) {
+    const x = event.clientX;
+    const y = event.clientY;
+    const rect = canvas.getBoundingClientRect();
+    return x > rect.left && x < rect.right && y > rect.top && y < rect.bottom;
+  }
+  function eventToCity(event, round = true) {
+    const x = event.clientX;
+    const y = event.clientY;
+    const rect = canvas.getBoundingClientRect();
+    const scaledX = ((x - rect.left) / rect.width) * canvas.width - origin.x;
+    const scaledY = - (((y - rect.top) / rect.height) * canvas.height - origin.y);
+    return {
+      x: Math.round(scaledX),
+      y: Math.round(scaledY)
+    }
+  }
+  function cityToCanvas(city) {
+    return {
+      x: city.x + origin.x,
+      y: (-city.y) + origin.y
+    }
+  }
+  function cityToEvent(city) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((city.x + origin.x) / canvas.width) * rect.width + rect.left,
+      y: (((-city.y) + origin.y) / canvas.height) * rect.height + rect.top
+    }
+  }
+  function handleMouseDown(e) {
+    const result = pick(e);
+    if(result) {
+      picked = result;
+      canvas.style.cursor = "grabbing";
+    }
+    moved = false;
+  }
+  function handleMouseMove(e) {
+    displayCoordinates(e);
+    moved = true;
+    if(picked) {
+      document.getSelection().removeAllRanges();
+      dragPickedObject(e);
+    } else {
+      if(pick(e)) {
+        canvas.style.cursor = "pointer";
+      } else {
+        canvas.style.cursor = "initial";
+      }
+    }
+
+  }
+  function handleMouseUp(e) {
+    if(picked && !moved) {
+      handleElementClicked(e);
+    }
+    if(!picked && !moved) {
+      handleClick(e);
+    }
+    if(picked) {
+      copyFromElement(picked);
+    }
+    picked = undefined;
+    moved = false;
+  }
+  function dragPickedObject(e) {
+    changed = true;
+    if(inCity(e)) {
+      const coords = eventToCity(e);
+      if(picked.type == "marker") {
+        picked.x = coords.x;
+        picked.y = coords.y;
+      } else if(picked.type == "polygon") {
+        const pos = picked.positions[picked.pickedPosition];
+        pos.x = coords.x;
+        pos.y = coords.y;
+      }
+    }
+    if(getSelected() !== picked) {
+      selectElement(picked);
+    }
+    drawEverything();
+  }
+  function handleClick(e) {
+    if(!inCity(e)) {
+      return;
+    }
+    if(activeTool === "markerTool") {
+      const marker = eventToCity(e);
+      marker.selected = false;
+      marker.type = "marker";
+      elements.push(marker);
+      selectElement(marker);
+      changed = true;
+    } else if(activeTool === "polygonTool") {
+      const position = eventToCity(e);
+      const selected = getSelected();
+      if(selected && selected.type === "polygon") {
+        selected.positions.push(position);
+        copyFromElement(selected);
+        drawEverything();
+      } else {
+        const newPolygon = {
+          type: "polygon",
+          positions: [position],
+          selected: false
+        };
+        elements.push(newPolygon);
+        selectElement(newPolygon);
+      }
+      changed = true;
+    } else if(activeTool === "selectTool") {
+      unselect();
+    }
+  }
+  function handleElementClicked(e) {
+    if(!pressingShift) {
+      selectElement(picked);
+    } else {
+      deleteSingleMarker(picked);
+    }
+  }
+
+  function deleteSingleMarker(element) {
+    changed = true;
+    if(element.type == "marker" || (element.type == "polygon" && element.positions.length === 1)) {
+      selectElement(element);
+      deleteSelected();
+    } else {
+      const index = element.pickedPosition;
+      element.positions.splice(index, 1);
+      drawEverything();
+    }
+  }
+  function drawBackground() {
+    const bgCanvas = $("#backgroundCanvas")[0];
+    console.log(canvas.width, canvas.height);
+    bgCanvas.width = canvas.width;
+    bgCanvas.height = canvas.height;
+    const bgContext = bgCanvas.getContext('2d');
+    if(desaturate) {
+      bgContext.globalAlpha = 0.4;
+    }
+    bgContext.drawImage(imageObject, 0, 0, bgCanvas.width, bgCanvas.height);
+  }
+  function drawEverything() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    elements.forEach(element => {
+      if(element.type === "marker") {
+        drawMarker(element, element.selected);
+      } else if (element.type === "polygon") {
+        drawPolygon(element);
+      }
+    })
+  }
+  function drawPolygon(polygon) {
+    polygon.positions.forEach(position => {
+      drawMarker(position, polygon.selected);
+    });
+
+    context.beginPath();
+    context.strokeStyle = polygon.selected ? "red" : "black";
+    context.lineWidth = 3;
+    const first = cityToCanvas(polygon.positions[0]);
+    context.moveTo(first.x, first.y);
+    polygon.positions.slice(1).forEach(position => {
+      const pos = cityToCanvas(position);
+      context.lineTo(pos.x, pos.y);
+    })
+    context.lineTo(first.x, first.y);
+    context.closePath();
+    context.stroke();
+
+  }
+  function drawMarker(marker, selected) {
+    const coords = cityToCanvas(marker);
+    const size = markerSize * screenScale;
+    if(selected) {
+      context.fillStyle = "red";
+      context.font = (size * relativeFontSize) + "px Arial";
+      context.textAlign = "center";
+      context.fillText(marker.x + ", " + marker.y, coords.x, coords.y - size * 2);
+    } else {
+      context.fillStyle = "black";
+    }
+
+    context.fillRect(coords.x - size/2, coords.y - size/2, size, size);
+  }
+  function copyFromElement(element) {
+    let text = "";
+    if(element.type == "marker") {
+      text = JSON.stringify([element.x, element.y]);
+    } else if (element.type == "polygon") {
+      text = JSON.stringify(element.positions.map(position => [position.x, position.y]));
+    }
+
+    copyToClipboard(text);
+  }
+  function copyToClipboard(text) {
+    var textArea = document.createElement("textarea");
+    textArea.style.position = 'fixed';
+    textArea.style.top = 0;
+    textArea.style.left = 0;
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = 0;
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      $("#clipboard").text(text);
+    } catch (err) {
+      $("#clipboard").text("Error while copying text");
+    }
+    document.body.removeChild(textArea);
+
+  }
+  function getSelected() {
+    return elements.find(element => element.selected);
+  }
+  function selectElement(marker) {
+    const selected = getSelected();
+    if(selected) {
+      selected.selected = false;
+    }
+    marker.selected = true;
+    copyFromElement(marker);
+    drawEverything();
+  }
+  function pick(e) {
+    const size2 = markerSize / 2;
+    const pickedElement = elements.find(element => {
+      if(element.type == "marker") {
+        const m = cityToEvent(element);
+        if(e.clientX > m.x - size2 && e.clientX < m.x + size2 && e.clientY > m.y - size2 && e.clientY < m.y + size2) {
+          return true;
+        }
+      } else if (element.type == "polygon") {
+        return element.positions.some((position, index) => {
+          const m = cityToEvent(position);
+          if(e.clientX > m.x - size2 && e.clientX < m.x + size2 && e.clientY > m.y - size2 && e.clientY < m.y + size2) {
+            element.pickedPosition = index;
+            return true;
+          }
+        })
+      }
+    })
+    return pickedElement;
+  }
+  function deleteSelected() {
+    changed = true;
+    const selected = getSelected();
+    if(selected) {
+      const index = elements.indexOf(selected);
+      elements.splice(index, 1);
+      copyToClipboard("");
+      drawEverything();
+    }
+  }
+  function handleKeyUp(e) {
+    if(e.keyCode == 8) {
+      deleteSelected();
+    }
+    if(e.keyCode == 27) {
+      unselect();
+    }
+    if(e.keyCode == 16) {
+      pressingShift = false;
+    }
+  }
+  function handleKeyDown(e) {
+    if(e.keyCode == 16) {
+      pressingShift = true;
+      document.getSelection().removeAllRanges();
+    }
+  }
+  function unselect() {
+    const selected = getSelected();
+    if(selected) {
+      selected.selected = false;
+      drawEverything();
+    }
+    copyToClipboard("");
+  }
+  function exportData() {
+    changed = false;
+    const json = {
+      version: "1.0",
+      width: canvas.width,
+      height: canvas.height,
+      elements: elements,
+      desaturate: desaturate,
+      origin: origin
+    }
+    if(imageObject) {
+      json.image = imageObject.src;
+    }
+    let link = document.createElement("a");
+    link.download = "shapes.json";
+    link.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(json));
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    link = null;
+  }
+</script>
+</body>
+</html>
