@@ -6,12 +6,12 @@ Steam workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=234377190
 
 It is written in TypeScript with HTML5 Canvas functionality and Vite.
 
-# Reviews on Steam
+## Reviews on Steam
 
 * **haneul**: It is the best tool to create a mini metro map.👍
 * ⁧**さびアカデミー**: Awesome!
 
-# Get started
+## Get started
 
 To start the server:
 
@@ -20,7 +20,7 @@ npm install
 npm run dev
 ```
 
-# How to use
+## How to use
 
 First, create a picture that you want to use as a background while drawing shapes. This could be a Google Maps image or a metro map.
 
