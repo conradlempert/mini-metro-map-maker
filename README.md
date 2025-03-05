@@ -1,6 +1,6 @@
-# mini-metro-map-maker
-
 <img width="700" alt="2343771903_preview_Bildschirmfoto 2020-12-31 um 19 00 34" src="https://github.com/user-attachments/assets/2060409d-02ce-4082-aeb8-3e262ccb9da1" />
+
+# mini-metro-map-maker
 
 This is a tool for drawing shapes on a map and to copy/paste their coordinates, so as to use them for custom Mini Metro (Steam game) maps.
 
