@@ -1,5 +1,7 @@
 # mini-metro-map-maker
 
+<img width="700" alt="2343771903_preview_Bildschirmfoto 2020-12-31 um 19 00 34" src="https://github.com/user-attachments/assets/2060409d-02ce-4082-aeb8-3e262ccb9da1" />
+
 This is a tool for drawing shapes on a map and to copy/paste their coordinates, so as to use them for custom Mini Metro (Steam game) maps.
 
 Steam workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=2343771903
@@ -32,7 +34,7 @@ Next, open this image in the tool and adjust the settings. 5000x5000 was recomme
 
 Now, you can draw points or polygons. When you do this, their coordinates get automatically copied into the clipboard. Points are exported like [x,y] and polygons are exported like [[x1, y1], [x2, y2], [x3, y3], ...]. This format can be directly used in the city.json.
 
-<img width="937" alt="2343771903_preview_Bildschirmfoto 2020-12-31 um 19 00 34" src="https://github.com/user-attachments/assets/2060409d-02ce-4082-aeb8-3e262ccb9da1" />
+<img width="700" alt="2343771903_preview_Bildschirmfoto 2020-12-31 um 19 00 34" src="https://github.com/user-attachments/assets/2060409d-02ce-4082-aeb8-3e262ccb9da1" />
 
 Here is further explanation of the tool:
 
