@@ -4,6 +4,24 @@ This is a tool for drawing shapes on a map and to copy/paste their coordinates, 
 
 Steam workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=2343771903
 
+It is written in TypeScript with HTML5 Canvas functionality and Vite.
+
+# Reviews on Steam
+
+* **haneul**: It is the best tool to create a mini metro map.👍
+* ⁧**さびアカデミー**: Awesome!
+
+# Get started
+
+To start the server:
+
+```
+npm install
+npm run dev
+```
+
+# How to use
+
 First, create a picture that you want to use as a background while drawing shapes. This could be a Google Maps image or a metro map.
 
 <img width="322" alt="2343771903_preview_st petersburg" src="https://github.com/user-attachments/assets/f11ec71d-e5bb-4d10-a5ea-0d499f60e89d" />
