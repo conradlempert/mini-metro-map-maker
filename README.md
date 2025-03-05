@@ -1,5 +1,7 @@
 # mini-metro-map-maker
 
+This is a tool for drawing shapes on a map and to copy/paste their coordinates, so as to use them for custom Mini Metro (Steam game) maps.
+
 Steam workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=2343771903
 
 First, create a picture that you want to use as a background while drawing shapes. This could be a Google Maps image or a metro map.
