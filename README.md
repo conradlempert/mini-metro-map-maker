@@ -1,8 +1,8 @@
 # mini-metro-map-maker
 
-## Use the tool here
+## Use the tool
 
-**https://conradlempert.github.io/mini-metro-map-maker/**
+Use it here: **https://conradlempert.github.io/mini-metro-map-maker/**
 
 ## General info
 
