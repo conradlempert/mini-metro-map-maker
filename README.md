@@ -15,14 +15,16 @@ It is written in TypeScript with HTML5 Canvas functionality and Vite.
 * **haneul**: It is the best tool to create a mini metro map.👍
 * ⁧**さびアカデミー**: Awesome!
 
-## Get started
+## Development
 
-To start the server:
+To start the development server, run this in the root folder of the repo:
 
 ```
 npm install
 npm run dev
 ```
+
+Then go to http://localhost:5173.
 
 ## How to use
 
