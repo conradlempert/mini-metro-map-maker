@@ -2,7 +2,7 @@
 
 ## Use the tool
 
-**Use it here: https://conradlempert.github.io/mini-metro-map-maker/**
+**Go to this page: https://conradlempert.github.io/mini-metro-map-maker/**
 
 ## General info
 
