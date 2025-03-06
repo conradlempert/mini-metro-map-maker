@@ -1,6 +1,10 @@
 # mini-metro-map-maker
 
+## Use the tool
+
 **Use it here: https://conradlempert.github.io/mini-metro-map-maker/**
+
+## General info
 
 <img width="500" alt="2343771903_preview_Bildschirmfoto 2020-12-31 um 19 00 34" src="https://github.com/user-attachments/assets/2060409d-02ce-4082-aeb8-3e262ccb9da1" /><img width="300" alt="2343771903_preview_Bildschirmfoto 2020-12-31 um 19 01 44" src="https://github.com/user-attachments/assets/92b25913-343d-418d-94e0-6e1f5023838e" />
 
