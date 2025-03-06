@@ -14,6 +14,13 @@ let picked: Marker | undefined;
 let changed = false;
 let desaturate = false;
 
+type AnyMouseEvent =
+  | MouseEvent
+  | JQuery.MouseMoveEvent
+  | JQuery.MouseDownEvent
+  | JQuery.MouseUpEvent;
+
+type AnyKeyboardEvent = KeyboardEvent | JQuery.KeyDownEvent | JQuery.KeyUpEvent;
 interface ExportJson {
   version: string;
   width: number;
@@ -30,14 +37,14 @@ interface Point {
 }
 
 interface Marker {
-  type: "marker" | "polygon";
+  type: "singleMarker" | "polygon";
   selected: boolean;
 }
 
 interface SingleMarker extends Marker {
   x: number;
   y: number;
-  type: "marker";
+  type: "singleMarker";
 }
 
 interface Polygon extends Marker {
@@ -91,8 +98,8 @@ function processMap(): void {
   if (file) {
     const reader = new FileReader();
     reader.readAsText(file);
-    reader.addEventListener("load", (e) => {
-      const reader = e.target as FileReader;
+    reader.addEventListener("load", (event) => {
+      const reader = event.target as FileReader;
       var result = JSON.parse(reader.result as string);
       elements = result.elements;
       canvas.width = result.width;
@@ -164,21 +171,21 @@ function chooseTool(toolName: string): void {
     unselect();
   }
 }
-function displayCoordinates(e: MouseEvent): void {
-  if (inCity(e)) {
-    const city = eventToCity(e);
+function displayCoordinates(event: AnyMouseEvent): void {
+  if (inCity(event)) {
+    const city = eventToCity(event);
     $("#coordinate").text(city.x + ", " + city.y);
   } else {
     $("#coordinate").html("&nbsp;");
   }
 }
-function inCity(event: MouseEvent): boolean {
+function inCity(event: AnyMouseEvent): boolean {
   const x = event.clientX;
   const y = event.clientY;
   const rect = canvas.getBoundingClientRect();
   return x > rect.left && x < rect.right && y > rect.top && y < rect.bottom;
 }
-function eventToCity(event: MouseEvent): Point {
+function eventToCity(event: AnyMouseEvent): Point {
   const x = event.clientX;
   const y = event.clientY;
   const rect = canvas.getBoundingClientRect();
@@ -206,35 +213,35 @@ function cityToEvent(city: Point): Point {
     y: ((-city.y + coordsOrigin.y) / canvas.height) * rect.height + rect.top,
   };
 }
-function handleMouseDown(e: MouseEvent): void {
-  const result = pick(e);
+function handleMouseDown(event: AnyMouseEvent): void {
+  const result = pick(event);
   if (result) {
     picked = result;
     canvas.style.cursor = "grabbing";
   }
   moved = false;
 }
-function handleMouseMove(e: MouseEvent): void {
-  displayCoordinates(e);
+function handleMouseMove(event: AnyMouseEvent): void {
+  displayCoordinates(event);
   moved = true;
   if (picked) {
     const selection = document.getSelection() as Selection;
     selection.removeAllRanges();
-    dragPickedObject(e);
+    dragPickedObject(event);
   } else {
-    if (pick(e)) {
+    if (pick(event)) {
       canvas.style.cursor = "pointer";
     } else {
       canvas.style.cursor = "initial";
     }
   }
 }
-function handleMouseUp(e: MouseEvent): void {
+function handleMouseUp(event: AnyMouseEvent): void {
   if (picked && !moved) {
     handleElementClicked();
   }
   if (!picked && !moved) {
-    handleClick(e);
+    handleClick(event);
   }
   if (picked) {
     copyFromElement(picked);
@@ -242,41 +249,45 @@ function handleMouseUp(e: MouseEvent): void {
   picked = undefined;
   moved = false;
 }
-function dragPickedObject(e: MouseEvent): void {
+function dragPickedObject(event: AnyMouseEvent): void {
   changed = true;
-  if (inCity(e)) {
-    const coords = eventToCity(e);
-    if (picked.type == "marker") {
-      picked.x = coords.x;
-      picked.y = coords.y;
-    } else if (picked.type == "polygon") {
-      const pos = picked.positions[picked.pickedPosition];
-      pos.x = coords.x;
-      pos.y = coords.y;
+  if (inCity(event)) {
+    const coords = eventToCity(event);
+    if (picked) {
+      if (picked.type == "singleMarker") {
+        (picked as SingleMarker).x = coords.x;
+        (picked as SingleMarker).y = coords.y;
+      } else if (picked.type == "polygon") {
+        const pos = (picked as Polygon).positions[
+          (picked as Polygon).pickedPosition
+        ];
+        pos.x = coords.x;
+        pos.y = coords.y;
+      }
     }
   }
   if (getSelected() !== picked) {
-    selectElement(picked);
+    selectElement(picked as Marker);
   }
   drawEverything();
 }
-function handleClick(e: MouseEvent): void {
-  if (!inCity(e)) {
+function handleClick(event: AnyMouseEvent): void {
+  if (!inCity(event)) {
     return;
   }
   if (activeTool === "markerTool") {
-    const point = eventToCity(e);
+    const point = eventToCity(event);
     const marker: SingleMarker = {
       x: point.x,
       y: point.y,
       selected: false,
-      type: "marker",
+      type: "singleMarker",
     };
     elements.push(marker);
     selectElement(marker);
     changed = true;
   } else if (activeTool === "polygonTool") {
-    const position = eventToCity(e);
+    const position = eventToCity(event);
     const selected = getSelected();
     if (selected && selected.type === "polygon") {
       (selected as Polygon).positions.push(position);
@@ -298,17 +309,19 @@ function handleClick(e: MouseEvent): void {
   }
 }
 function handleElementClicked(): void {
-  if (!pressingShift) {
-    selectElement(picked);
-  } else {
-    deleteSingleMarker(picked);
+  if (picked) {
+    if (!pressingShift) {
+      selectElement(picked);
+    } else {
+      deleteSingleMarker(picked);
+    }
   }
 }
 
 function deleteSingleMarker(element: Marker) {
   changed = true;
   if (
-    element.type == "marker" ||
+    element.type == "singleMarker" ||
     (element.type == "polygon" && (element as Polygon).positions.length === 1)
   ) {
     selectElement(element);
@@ -321,7 +334,6 @@ function deleteSingleMarker(element: Marker) {
 }
 function drawBackground() {
   const bgCanvas = $("#backgroundCanvas")[0] as HTMLCanvasElement;
-  console.log(canvas.width, canvas.height);
   bgCanvas.width = canvas.width;
   bgCanvas.height = canvas.height;
   const bgContext = bgCanvas.getContext("2d") as CanvasRenderingContext2D;
@@ -333,14 +345,14 @@ function drawBackground() {
 function drawEverything() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   elements.forEach((element) => {
-    if (element.type === "marker") {
-      drawMarker(element, element.selected);
+    if (element.type === "singleMarker") {
+      drawMarker(element as SingleMarker, element.selected);
     } else if (element.type === "polygon") {
-      drawPolygon(element);
+      drawPolygon(element as Polygon);
     }
   });
 }
-function drawPolygon(polygon) {
+function drawPolygon(polygon: Polygon) {
   polygon.positions.forEach((position) => {
     drawMarker(position, polygon.selected);
   });
@@ -358,7 +370,7 @@ function drawPolygon(polygon) {
   context.closePath();
   context.stroke();
 }
-function drawMarker(marker, selected) {
+function drawMarker(marker: Point, selected: boolean) {
   const coords = cityToCanvas(marker);
   const size = markerSize * screenScale;
   if (selected) {
@@ -372,13 +384,16 @@ function drawMarker(marker, selected) {
 
   context.fillRect(coords.x - size / 2, coords.y - size / 2, size, size);
 }
-function copyFromElement(element) {
+function copyFromElement(element: Marker): void {
   let text = "";
-  if (element.type == "marker") {
-    text = JSON.stringify([element.x, element.y]);
+  if (element.type == "singleMarker") {
+    text = JSON.stringify([
+      (element as SingleMarker).x,
+      (element as SingleMarker).y,
+    ]);
   } else if (element.type == "polygon") {
     text = JSON.stringify(
-      element.positions.map((position) => [position.x, position.y])
+      (element as Polygon).positions.map((position) => [position.x, position.y])
     );
   }
 
@@ -420,16 +435,16 @@ function selectElement(marker: Marker): void {
   copyFromElement(marker);
   drawEverything();
 }
-function pick(e: MouseEvent): Marker | undefined {
+function pick(event: AnyMouseEvent): Marker | undefined {
   const size2 = markerSize / 2;
   const pickedElement = elements.find((element) => {
-    if (element.type == "marker") {
+    if (element.type == "singleMarker") {
       const m = cityToEvent(element as SingleMarker);
       if (
-        e.clientX > m.x - size2 &&
-        e.clientX < m.x + size2 &&
-        e.clientY > m.y - size2 &&
-        e.clientY < m.y + size2
+        event.clientX > m.x - size2 &&
+        event.clientX < m.x + size2 &&
+        event.clientY > m.y - size2 &&
+        event.clientY < m.y + size2
       ) {
         return true;
       }
@@ -437,10 +452,10 @@ function pick(e: MouseEvent): Marker | undefined {
       return (element as Polygon).positions.some((position, index) => {
         const m = cityToEvent(position);
         if (
-          e.clientX > m.x - size2 &&
-          e.clientX < m.x + size2 &&
-          e.clientY > m.y - size2 &&
-          e.clientY < m.y + size2
+          event.clientX > m.x - size2 &&
+          event.clientX < m.x + size2 &&
+          event.clientY > m.y - size2 &&
+          event.clientY < m.y + size2
         ) {
           (element as Polygon).pickedPosition = index;
           return true;
@@ -460,19 +475,19 @@ function deleteSelected(): void {
     drawEverything();
   }
 }
-function handleKeyUp(e: KeyboardEvent): void {
-  if (e.keyCode == 8) {
+function handleKeyUp(event: AnyKeyboardEvent): void {
+  if (event.keyCode == 8) {
     deleteSelected();
   }
-  if (e.keyCode == 27) {
+  if (event.keyCode == 27) {
     unselect();
   }
-  if (e.keyCode == 16) {
+  if (event.keyCode == 16) {
     pressingShift = false;
   }
 }
-function handleKeyDown(e: KeyboardEvent): void {
-  if (e.keyCode == 16) {
+function handleKeyDown(event: AnyKeyboardEvent): void {
+  if (event.keyCode == 16) {
     pressingShift = true;
     (document.getSelection() as Selection).removeAllRanges();
   }
