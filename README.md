@@ -12,7 +12,7 @@ This is a tool that allows users to draw shapes over a map and copy/paste their 
 
 Steam workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=2343771903
 
-It is written in TypeScript with HTML5 Canvas functionality and Vite.
+It is written in TypeScript with HTML5 Canvas and Vite.
 
 ## Reviews on Steam
 
