@@ -16,6 +16,8 @@ It is written in TypeScript with HTML5 Canvas functionality and Vite.
 
 ## Reviews on Steam
 
+❤️ 26 favorites
+
 * **haneul**: It is the best tool to create a mini metro map.👍
 * ⁧**さびアカデミー**: Awesome!
 
